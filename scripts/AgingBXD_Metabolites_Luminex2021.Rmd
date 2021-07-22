@@ -1,19 +1,41 @@
 ---
-title: "AgingBXD_Metabolites_Luminex2021"
-output: html_document
+jupyter:
+  jupytext:
+    cell_metadata_filter: name,-all
+    formats: Rmd,ipynb
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.11.1
+  kernelspec:
+    display_name: R
+    language: R
+    name: ir
 ---
 
-## Luminex serum metabolites
+# Analysis of Luminex serum metabolites
+
+## Preparatory steps
+
 ```{r readBXDlumnxmetabolites}
 ## set figure options)
 options(repr.plot.width = 6, repr.plot.height = 6)
 ## load library
 library(tidyverse)
+library(lme4)
+library(metafor)
+```
+## Read data
+
+```{r readBXDlumnxmetabolites}
 BXDlumnxmetabolites <- "../data/AgingBXD_Metabolites_Luminex2021_SR.csv"
 luminex <- read.csv(BXDlumnxmetabolites)
 names(luminex)
 nrow(luminex)
 ```
+## Apply log transform
+
 ```{r transformations}
 luminex <- mutate(luminex,
                   LogInsulin = log(Insulin),
@@ -35,25 +57,25 @@ t.test(LogHOMA.IR~DietCode, data=luminex)
 ```{r lumnxmetabplot}
 library(vioplot)
 mycolors<- c("#E30613","#312783")
-pdf(file= "vioplot_logInsulin.pdf")
+# pdf(file= "vioplot_logInsulin.pdf")
 vioplot(luminex$LogInsulin ~luminex$DietCode,col= c("tomato", "royalblue"), xlab= "Diets", ylab= "Serum Insulin (log pg/mL)")
 mediang <- tapply(luminex$LogInsulin, luminex$DietCode, median,na.rm=T)
-dev.off()
-pdf(file= "vioplot_logHOMAIR.pdf")
+# dev.off()
+# pdf(file= "vioplot_logHOMAIR.pdf")
 vioplot(luminex$LogHOMA.IR ~luminex$DietCode,col= c("tomato", "royalblue"), xlab= "Diets", ylab= " Log (HOMA-IR)")
 mediang <- tapply(luminex$LogHOMA.IR, luminex$DietCode, median,na.rm=T)
-dev.off()
-pdf(file= "vioplot_logLeptin.pdf")
+# dev.off()
+# pdf(file= "vioplot_logLeptin.pdf")
 vioplot(luminex$LogLeptin ~luminex$DietCode,col= c("tomato", "royalblue"), xlab= "Diets", ylab= "Serum Leptin (log pg/mL)")
 mediang <- tapply(luminex$LogLeptin,luminex$DietCode, median,na.rm=T)
-dev.off()
-pdf(file= "vioplot_logCpeptide.pdf")
+# dev.off()
+# pdf(file= "vioplot_logCpeptide.pdf")
 vioplot(luminex$LogC.peptide ~luminex$DietCode,col= c("tomato", "royalblue"), xlab= "Diets", ylab= "Serum C-peptide (log pg/mL)")
-mediang <- tapply(luminex$LogC.peptide, BXDlumnxmetab$DietCode, median,na.rm=T)
-dev.off()
+mediang <- tapply(luminex$LogC.peptide, luminex$DietCode, median,na.rm=T)
+# dev.off()
 ```
 
-## Effect of serum hormones on age at death and final body weight on each diet adjusting for strain effect
+## Effect of serum hormones on age at death and final body weight on each diet adjusting for strain effect and plate
 
 ```{r summarizeByCovariate2}
 summarizeByCovariate2 <- function(data,pheno,cov,backCov,nmin=3)
@@ -109,20 +131,20 @@ summarizeByCovariate2 <- function(data,pheno,cov,backCov,nmin=3)
 
 ```
 
-```{r splitByDiet}
+```{r}
+# Separate datasets by diet
+
 luminexCD = filter(luminex,DietCode=="CD")
 luminexHF = filter(luminex,DietCode=="HF")
 ```
 
-```{r summarize}
+```{r}
 outInsulinHFAge <- summarizeByCovariate2(luminexHF,"LogInsulin","AgeAtDeath","Plate",4)
 outInsulinHFBW <- summarizeByCovariate2(luminexHF,"LogInsulin","BodyWeight","Plate",4)
-outLeptinHFAge <- summarizeByCovariate2(luminexHF,"LogLeptin","AgeAtDeath","Plate",4)
+outLeptinHFAge <- summarizeByCovariate2(luminexHF,"LogLeptin","AgeAtDeath","Plate",6)
 outLeptinHFBW <- summarizeByCovariate2(luminexHF,"LogC.peptide","BodyWeight","Plate",4)
 outCpeptideHFAge <- summarizeByCovariate2(luminexHF,"LogC.peptide","AgeAtDeath","Plate",4)
-outCpeptideHFBW <- summarizeByCovariate2(luminexHF,"LogLeptin","BodyWeight","Plate",4)
+outCpeptideHFBW <- summarizeByCovariate2(luminexHF,"LogLeptin","BodyWeight","Plate",6)
 outHOMAIRHFAge <- summarizeByCovariate2(luminexHF,"LogHOMA.IR","AgeAtDeath","Plate",4)
 outHOMAIRHFBW <- summarizeByCovariate2(luminexHF,"LogHOMA.IR","BodyWeight","Plate",4)
-
-
 ```
